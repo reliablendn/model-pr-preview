@@ -1,4 +1,4 @@
-# LikeC4 PR preview starter
+# model-pr-preview
 
 An architecture model as the single source of truth, changed only through pull requests, with a live preview of every proposed change.
 
