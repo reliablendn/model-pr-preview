@@ -99,10 +99,13 @@ views {
     routing ortho
     autoLayout TopBottom
     include *, externalSystems.*
+    include studio with {
+      navigateTo studio
+    }
   }
 
   view studio {
-    title 'Studio by layer'
+    title 'Studio'
     routing ortho
     autoLayout TopBottom
 
