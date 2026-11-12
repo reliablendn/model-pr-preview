@@ -8,7 +8,7 @@ This repo is a small, fictional example: a gym chain building its own member exp
 
 | Path | What it is |
 |---|---|
-| `architecture.likec4` | The model: every system, service and relationship, defined once. Tags place services in layers. Two views (the landscape, and Studio by layer) are generated from the same definitions. |
+| `architecture.likec4` | The model: every system, service and relationship, defined once. Tags place services in layers. Two views are generated from the same definitions: the landscape, and Studio grouped by layer. Click Studio in the landscape to open its view. |
 | `journeys/book-class/index.likec4` | A customer journey as a LikeC4 dynamic view. Each step that crosses into the vendor's platform has a note listing the data it needs. Together, they're the requirements for the platform's API contract. |
 | `.github/workflows/deploy.yml` | Builds the model into a static LikeC4 site on every push, publishes it to GitHub Pages, and comments on the pull request with preview links. |
 
