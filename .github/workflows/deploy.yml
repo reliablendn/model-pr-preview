@@ -38,12 +38,16 @@ jobs:
           # e.g. feature/login → feature-login
           BRANCH_SAFE="${BRANCH//\//-}"
 
+          # Path the site is served under, taken from the Pages URL
+          # e.g. https://owner.github.io/repo → /repo ; a custom domain root → (empty)
+          SITE_PATH=$(echo "$PAGES_BASE_URL" | sed -E 's#^https?://[^/]+##; s#/+$##')
+
           if [ "$BRANCH" = "main" ]; then
-            echo "base=/"   >> "$GITHUB_OUTPUT"
-            echo "dest=."   >> "$GITHUB_OUTPUT"
+            echo "base=$SITE_PATH/"   >> "$GITHUB_OUTPUT"
+            echo "dest=."             >> "$GITHUB_OUTPUT"
           else
-            echo "base=/branches/$BRANCH_SAFE/" >> "$GITHUB_OUTPUT"
-            echo "dest=branches/$BRANCH_SAFE"   >> "$GITHUB_OUTPUT"
+            echo "base=$SITE_PATH/branches/$BRANCH_SAFE/" >> "$GITHUB_OUTPUT"
+            echo "dest=branches/$BRANCH_SAFE"             >> "$GITHUB_OUTPUT"
           fi
 
       - name: Build LikeC4 static app
