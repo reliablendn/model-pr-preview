@@ -11,7 +11,7 @@ env:
   # GitHub Pages URL for this repo. Override with a repository variable if you use a custom domain.
   PAGES_BASE_URL: ${{ vars.PAGES_BASE_URL || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
   # Branch that GitHub Pages serves from (Settings > Pages > Deploy from a branch)
-  PAGES_BRANCH: likec4-pages
+  PAGES_BRANCH: model-pages
 
 permissions:
   contents: write
