@@ -1,0 +1,59 @@
+// A customer journey as a dynamic view.
+// Each step that crosses into the vendor's platform carries a note listing the data it needs.
+// Together, those steps and notes are the requirements for the platform's API contract.
+
+views {
+  dynamic view bookClassJourney {
+    title 'Book a class'
+
+    member -> studio.webApp 'Find classes (gym, date, class type)'
+    studio.webApp -> studio.experienceApi 'Search classes'
+    studio.experienceApi -> externalSystems.cms 'Fetch gym and class descriptions'
+    externalSystems.cms -> studio.experienceApi 'Descriptions and images'
+
+    studio.experienceApi -> externalSystems.classPlatform 'Search timetable' {
+      notes '''
+      ### Data
+      1. Gym ID
+      2. Date
+      3. Class type (optional)
+      '''
+    }
+    externalSystems.classPlatform -> studio.experienceApi 'Classes with spaces left' {
+      notes '''
+      ### Data
+      1. Class ID, name, start time (UTC), duration
+      2. Spaces left
+      3. Price (integer minor units; 0 for included classes)
+      '''
+    }
+    studio.experienceApi -> studio.webApp 'Classes with descriptions and spaces left'
+    studio.webApp -> member 'Classes'
+
+    member -> studio.webApp 'Book class'
+    studio.webApp -> studio.experienceApi 'Book class'
+    studio.experienceApi -> studio.profileApi 'Get member details'
+    studio.profileApi -> studio.experienceApi 'Name, email, membership ID'
+
+    studio.experienceApi -> externalSystems.classPlatform 'Create booking' {
+      notes '''
+      ### Data
+      1. Class ID
+      2. Membership ID
+      3. Member name and email
+      4. Idempotency key (safe to retry)
+      '''
+    }
+    externalSystems.classPlatform -> externalSystems.email 'Send booking confirmation'
+    externalSystems.classPlatform -> studio.experienceApi 'Booking confirmation' {
+      notes '''
+      ### Data
+      1. Booking ID
+      2. Class ID and start time (UTC)
+      3. Status (confirmed)
+      '''
+    }
+    studio.experienceApi -> studio.webApp 'Booking confirmation'
+    studio.webApp -> member 'Booking confirmed'
+  }
+}

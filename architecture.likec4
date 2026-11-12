@@ -1,0 +1,125 @@
+// Fictional example: a gym chain building its own member experience ("Studio")
+// on top of a headless class-booking platform run by a vendor.
+
+specification {
+  element actor {
+    style {
+      shape person
+      color muted
+    }
+  }
+  element system
+  element service
+  element externalSystem {
+    style {
+      color secondary
+    }
+  }
+  element queue {
+    style {
+      shape queue
+    }
+  }
+  tag customerLayer
+  tag experienceLayer
+  tag domainLayer
+}
+
+model {
+  member = actor 'Member' {
+    description 'Gym member who finds and books classes'
+
+    -> webApp
+    -> mobileApp
+  }
+
+  system studio 'Studio' {
+    description 'The gym chain’s own member experience'
+
+    service webApp 'Web App' {
+      #customerLayer
+      description 'Member-facing web application'
+
+      -> experienceApi
+    }
+
+    service mobileApp 'Mobile App' {
+      #customerLayer
+      description 'Member-facing mobile application'
+
+      -> experienceApi
+    }
+
+    service experienceApi 'Experience Service' {
+      #experienceLayer
+      description 'Orchestrates journeys across Studio services and the booking platform'
+
+      -> profileApi
+      -> classPlatform
+      -> cms
+      -> events
+    }
+
+    service profileApi 'Profile Service' {
+      #domainLayer
+      description 'Member profiles and preferences'
+
+      -> identity
+      -> events
+    }
+
+    queue events 'Events' {
+      #domainLayer
+      description 'Domain events published by Studio services'
+    }
+  }
+
+  system externalSystems 'External Systems' {
+    classPlatform = externalSystem 'Class Platform' {
+      description 'Vendor’s headless SaaS platform: gyms, timetables, classes and bookings'
+
+      -> payments 'Take payment for paid classes'
+      -> email 'Send booking confirmation'
+    }
+    cms = externalSystem 'Content Platform' {
+      description 'Gym and class descriptions, images'
+    }
+    identity = externalSystem 'Identity Provider' {
+      description 'Member sign-in'
+    }
+    payments = externalSystem 'Payment Gateway'
+    email = externalSystem 'Email Service'
+  }
+}
+
+views {
+
+  view index {
+    title 'Landscape'
+    routing ortho
+    autoLayout TopBottom
+    include *, externalSystems.*
+  }
+
+  view studio {
+    title 'Studio by layer'
+    routing ortho
+    autoLayout TopBottom
+
+    include member, externalSystems
+
+    group 'Studio' {
+      group 'Customer Layer' {
+        include element.tag = #customerLayer
+      }
+      group 'Experience Layer' {
+        include element.tag = #experienceLayer
+      }
+      group 'Domain Layer' {
+        include element.tag = #domainLayer
+      }
+    }
+
+    exclude studio
+  }
+}

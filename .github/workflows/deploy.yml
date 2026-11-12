@@ -1,0 +1,153 @@
+name: Deploy LikeC4 preview
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    types: [opened, reopened]
+
+env:
+  # GitHub Pages URL for this repo. Override with a repository variable if you use a custom domain.
+  PAGES_BASE_URL: ${{ vars.PAGES_BASE_URL || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
+  # Branch that GitHub Pages serves from (Settings > Pages > Deploy from a branch)
+  PAGES_BRANCH: likec4-pages
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0  # full history needed for git worktree
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Resolve deploy config
+        id: config
+        run: |
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          # Replace / with - so branch names are safe as directory names
+          # e.g. feature/login → feature-login
+          BRANCH_SAFE="${BRANCH//\//-}"
+
+          if [ "$BRANCH" = "main" ]; then
+            echo "base=/"   >> "$GITHUB_OUTPUT"
+            echo "dest=."   >> "$GITHUB_OUTPUT"
+          else
+            echo "base=/branches/$BRANCH_SAFE/" >> "$GITHUB_OUTPUT"
+            echo "dest=branches/$BRANCH_SAFE"   >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build LikeC4 static app
+        if: github.event_name == 'push'
+        run: |
+          npx likec4@1.60.0 build \
+            --base "${{ steps.config.outputs.base }}" \
+            --use-hash-history \
+            -o dist
+
+      - name: Deploy to the Pages branch
+        if: github.event_name == 'push'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Fetch the Pages branch if it already exists remotely
+          git fetch origin $PAGES_BRANCH 2>/dev/null || true
+
+          if git show-ref --verify --quiet refs/remotes/origin/$PAGES_BRANCH; then
+            # Branch exists — check it out as a worktree
+            git worktree add /tmp/pages origin/$PAGES_BRANCH
+            git -C /tmp/pages checkout -b $PAGES_BRANCH
+          else
+            # First ever deploy — create an orphan branch with no history
+            git worktree add --orphan -b $PAGES_BRANCH /tmp/pages
+            git -C /tmp/pages commit --allow-empty -m "chore: initialise $PAGES_BRANCH branch"
+          fi
+
+          DEST="${{ steps.config.outputs.dest }}"
+
+          if [ "$DEST" = "." ]; then
+            # Main branch: delete everything at root except branches/ and .git, then copy fresh
+            find /tmp/pages -mindepth 1 -maxdepth 1 \
+              ! -name '.git' \
+              ! -name 'branches' \
+              -exec rm -rf {} +
+            cp -r dist/. /tmp/pages/
+          else
+            # Feature branch: delete its subdirectory entirely and copy fresh
+            rm -rf "/tmp/pages/$DEST"
+            mkdir -p "/tmp/pages/$DEST"
+            cp -r dist/. "/tmp/pages/$DEST/"
+          fi
+
+          git -C /tmp/pages add -A
+
+          # Only commit if there are actual changes
+          git -C /tmp/pages diff --cached --quiet \
+            || git -C /tmp/pages commit \
+                 -m "deploy: ${{ github.ref_name }} @ ${GITHUB_SHA::7}"
+
+          git -C /tmp/pages push origin $PAGES_BRANCH
+
+      - name: Comment preview link on PR
+        if: (github.event_name == 'push' && github.ref != 'refs/heads/main') || github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          export GH_HOST="${GITHUB_SERVER_URL#https://}"
+          # On PR events GITHUB_HEAD_REF is the branch name; on push events derive it from GITHUB_REF
+          BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
+          BRANCH_SAFE="${BRANCH//\//-}"
+          # Strip trailing slash from base URL to avoid double slashes
+          BASE="${{ env.PAGES_BASE_URL }}"
+          BASE="${BASE%/}"
+          PREVIEW_URL="$BASE/branches/$BRANCH_SAFE/"
+          MAIN_URL="$BASE/"
+
+          # On PR events the number is available directly; on push events search for an open PR
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          if [ -z "$PR_NUMBER" ]; then
+            PR_NUMBER=$(gh pr list \
+              --head "$BRANCH" \
+              --state open \
+              --json number \
+              --jq '.[0].number // empty')
+          fi
+
+          if [ -z "$PR_NUMBER" ]; then
+            echo "No open PR found for branch $BRANCH, skipping comment."
+            exit 0
+          fi
+
+          BODY="<!-- likec4-preview-comment -->
+          ## Architecture Preview
+
+          | | Link |
+          |---|---|
+          | **This branch** | $PREVIEW_URL |
+          | **Main** | $MAIN_URL |
+
+          > Last updated: ${{ github.sha }}"
+
+          # Update existing comment if present, otherwise create a new one
+          COMMENT_ID=$(gh api \
+            "repos/${{ github.repository }}/issues/$PR_NUMBER/comments" \
+            --jq '.[] | select(.body | contains("<!-- likec4-preview-comment -->")) | .id' \
+            | head -1)
+
+          if [ -n "$COMMENT_ID" ]; then
+            gh api -X PATCH \
+              "repos/${{ github.repository }}/issues/comments/$COMMENT_ID" \
+              -f body="$BODY"
+          else
+            gh pr comment "$PR_NUMBER" --body "$BODY"
+          fi
