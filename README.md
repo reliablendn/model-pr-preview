@@ -8,7 +8,7 @@ This repo is a small, fictional example: a gym chain building its own member exp
 
 | Path | What it is |
 |---|---|
-| `architecture.likec4` | The model: every system, service and relationship, defined once. Tags place services in layers. Two views are generated from the same definitions: the landscape, and Studio grouped by layer. Click Studio in the landscape to open its view. |
+| `model.likec4` | The model: every system, service and relationship, defined once. Tags place services in layers. Two views are generated from the same definitions: the landscape, and Studio grouped by layer. Click Studio in the landscape to open its view. |
 | `journeys/book-class/index.likec4` | A customer journey as a LikeC4 dynamic view. Each step that crosses into the vendor's platform has a note listing the data it needs. Together, they're the requirements for the platform's API contract. |
 | `.github/workflows/deploy.yml` | Builds the model into a static LikeC4 site on every push, publishes it to GitHub Pages, and comments on the pull request with preview links. |
 
@@ -45,7 +45,7 @@ The [LikeC4 VS Code extension](https://marketplace.visualstudio.com/items?itemNa
 
 ## Make it yours
 
-- Replace `architecture.likec4` with your own systems. Start with a **steel thread**: the first thin, end-to-end journey you'll deliver, the services it needs, and how they integrate with external systems. Use it to get agreement on the first iteration.
+- Replace `model.likec4` with your own systems. Start with a **steel thread**: the first thin, end-to-end journey you'll deliver, the services it needs, and how they integrate with external systems. Use it to get agreement on the first iteration.
 - Add a folder under `journeys/` for each customer journey, as a dynamic view. Put the data each cross-system step needs in its `notes`.
 - From then on, make every change to the system start as a pull request against the model.
 
