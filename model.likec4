@@ -80,6 +80,7 @@ model {
 
       -> payments 'Take payment for paid classes'
       -> email 'Send booking confirmation'
+      -> push 'Notify member when a waitlist space opens'
     }
     cms = externalSystem 'Content Platform' {
       description 'Gym and class descriptions, images'
@@ -89,6 +90,9 @@ model {
     }
     payments = externalSystem 'Payment Gateway'
     email = externalSystem 'Email Service'
+    push = externalSystem 'Push Notification Service' {
+      description 'Sends notifications to the mobile app'
+    }
   }
 }
 

@@ -1,0 +1,38 @@
+// Proposed: let members join a waitlist when a class is full.
+
+views {
+  dynamic view joinWaitlistJourney {
+    title 'Join a waitlist'
+
+    member -> studio.mobileApp 'Join waitlist for a full class'
+    studio.mobileApp -> studio.experienceApi 'Join waitlist'
+    studio.experienceApi -> externalSystems.classPlatform 'Add to waitlist' {
+      notes '''
+      ### Data
+      1. Class ID
+      2. Membership ID
+      3. Idempotency key (safe to retry)
+      '''
+    }
+    externalSystems.classPlatform -> studio.experienceApi 'Waitlist position' {
+      notes '''
+      ### Data
+      1. Waitlist entry ID
+      2. Position in queue
+      '''
+    }
+    studio.experienceApi -> studio.mobileApp 'Waitlist position'
+    studio.mobileApp -> member 'You are number 3 on the waitlist'
+
+    externalSystems.classPlatform -> externalSystems.classPlatform 'Space opens: offer it to the first member on the waitlist'
+    externalSystems.classPlatform -> externalSystems.push 'Notify member' {
+      notes '''
+      ### Data
+      1. Membership ID
+      2. Class ID and start time (UTC)
+      3. Offer expiry time (UTC)
+      '''
+    }
+    externalSystems.push -> member 'A space is free: confirm within 30 minutes'
+  }
+}
